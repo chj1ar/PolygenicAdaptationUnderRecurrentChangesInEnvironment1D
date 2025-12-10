@@ -1,5 +1,13 @@
 # Plots of simulation and analytic results
 
+## Files
+
+quantities_of_interest.ipynb contains code that plots the quantities relevant to the central questions we are interested in answering/understanding
+
+auxiliary_quantities.ipynb contains code that plots quantities which help us understand why some quantities of interest have inaccurate analytics or behave not as we expected under some cases and parameter regimes
+
+plot_functions.py contains purely analytical functions of the quantities to plot and functions that read and preprocess simulation results
+
 ## Quantities of interest
 
 The fixation probability of newly arising mutations
