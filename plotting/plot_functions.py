@@ -6,8 +6,8 @@ from scipy.stats import binom
 from scipy.stats import rv_continuous
 from scipy.stats import hmean
 from scipy.integrate import quad
-from scipy.integrate import trapz
-from scipy.integrate import cumtrapz
+from scipy.integrate import trapezoid as trapz
+from scipy.integrate import cumulative_trapezoid as cumtrapz
 from scipy.optimize import curve_fit
 from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
@@ -20,13 +20,18 @@ import matplotlib.ticker as ticker
 import matplotlib.patches as mpatches
 import matplotlib.colors as colors
 import matplotlib.cm as cm
-%matplotlib inline
+# %matplotlib inline
 import seaborn as sns
 import numpy as np
 import math
 import random
 
+# AA simulation replicates
+parallel_AA = 49
+
 # define functions for analytical approximations
+N = 2000
+U = 0.025
 def pi(a, x): # the fixation probability under stationary stabilizing selection
     return (erf(a / 2.0) - erf(a / 2.0 * (1 - 2 * x))) / (2 * erf(a / 2.0))
 
@@ -447,6 +452,86 @@ def my_AA_results_d2ax_t_1(my_AA_directory, trait_increasing):
             return [sum(x) for x in zip(d2ax_t_1, d2ax_t_1[::-1])][int(0.5 * len(d2ax_t_1) + 1):-1]
         else:
             return [-sum(x) for x in zip(d2ax_t_1, d2ax_t_1[::-1])][int(0.5 * len(d2ax_t_1) + 1):-1]
+
+### calculate the quantities of interest, as a function of the effect size, the shift size, or the rate of shifts
+def calculate_fixation_probability_mean_and_se_across_effect_sizes_from_num_fixed_and_num_new_mutations(my_AA_directories, indices_ss, num_new_mutations, nE):
+    num_fixed = np.sum([read_pickle(os.path.join(my_AA_directory, 'num_fixed_nE_%d' % nE)) for my_AA_directory in my_AA_directories], axis=0)
+    fixation_probability_mean = [num_fixed[index_ss + 1] / (num_new_mutations / (nE + 1) * len(my_AA_directories)) for index_ss in indices_ss]
+    fixation_probability_se = np.sqrt(np.divide(np.multiply(fixation_probability_mean, np.subtract(1, fixation_probability_mean)), num_new_mutations / (nE + 1) * len(my_AA_directories)))
+    return fixation_probability_mean, fixation_probability_se
+
+def calculate_fixation_probability_mean_and_se_across_shifts_from_num_fixed_and_num_new_mutations(my_AA_directories_across_shifts, index_ss, num_new_mutations, nE):
+    assert len(my_AA_directories_across_shifts[0]) == parallel_AA
+    num_fixed_wrt_shift_s0 = [np.sum([read_pickle(os.path.join(my_AA_directory, 'num_fixed_nE_%d' % nE))[index_ss] for my_AA_directory in my_AA_directories_across_shifts[index_shift_s0]]) for index_shift_s0 in range(len(my_AA_directories_across_shifts))]
+    fixation_probability_mean_wrt_shift_s0 = np.divide(num_fixed_wrt_shift_s0, num_new_mutations / (nE + 1) * len(my_AA_directories_across_shifts[0]))
+    fixation_probability_se_wrt_shift_s0 = np.sqrt(np.divide(np.multiply(fixation_probability_mean_wrt_shift_s0, np.subtract(1, fixation_probability_mean_wrt_shift_s0)), num_new_mutations / (nE + 1) * len(my_AA_directories_across_shifts[0])))
+    return fixation_probability_mean_wrt_shift_s0, fixation_probability_se_wrt_shift_s0
+
+def calculate_heterozygosity_mean_and_se_across_effect_sizes(my_AA_directories, indices_ss, nE):
+    heterozygosity_each_generation = [[h for my_AA_directory in my_AA_directories for h in read_pickle(os.path.join(my_AA_directory, 'heterozygosity_nE_%d' % nE))[index_ss + 1]] for index_ss in indices_ss]
+    heterozygosity_mean = np.mean(heterozygosity_each_generation, axis=1)
+    heterozygosity_se = np.divide(np.std(heterozygosity_each_generation, axis=1), np.sqrt(np.size(heterozygosity_each_generation, axis=1)))
+    return heterozygosity_mean, heterozygosity_se
+
+def calculate_heterozygosity_with_frequency_cutoff_mean_and_se_across_effect_sizes(my_AA_directories, indices_ss, nE, maf_threshold):
+    heterozygosity_each_generation = [[h for my_AA_directory in my_AA_directories for h in read_pickle(os.path.join(my_AA_directory, 'heterozygosity_nE_%d_maf_threshold_' % nE + str(maf_threshold).replace('.', '_')))[index_ss + 1]] for index_ss in indices_ss]
+    heterozygosity_mean = np.mean(heterozygosity_each_generation, axis=1)
+    heterozygosity_se = np.divide(np.std(heterozygosity_each_generation, axis=1), np.sqrt(np.size(heterozygosity_each_generation, axis=1)))
+    return heterozygosity_mean, heterozygosity_se
+
+def calculate_heterozygosity_mean_and_se_across_shifts(my_AA_directories_across_shifts, index_ss, nE):
+    heterozygosity_each_generation_wrt_shift_s0 = [[h for my_AA_directory in my_AA_directories_across_shifts[index_shift_s0] for h in read_pickle(os.path.join(my_AA_directory, 'heterozygosity_nE_%d' % nE))[index_ss + 1]] for index_shift_s0 in range(len(my_AA_directories_across_shifts))]
+    heterozygosity_mean_wrt_shift_s0 = [np.mean(heterozygosity_each_generation) for heterozygosity_each_generation in heterozygosity_each_generation_wrt_shift_s0]
+    heterozygosity_se_wrt_shift_s0 = [np.divide(np.std(heterozygosity_each_generation), np.sqrt(np.size(heterozygosity_each_generation))) for heterozygosity_each_generation in heterozygosity_each_generation_wrt_shift_s0]
+    return heterozygosity_mean_wrt_shift_s0, heterozygosity_se_wrt_shift_s0
+
+def calculate_heterozygosity_with_frequency_cutoff_mean_and_se_across_shifts(my_AA_directories_across_shifts, index_ss, nE, maf_threshold):
+    heterozygosity_each_generation_wrt_shift_s0 = [[h for my_AA_directory in my_AA_directories_across_shifts[index_shift_s0] for h in read_pickle(os.path.join(my_AA_directory, 'heterozygosity_nE_%d_maf_threshold_' % nE + str(maf_threshold).replace('.', '_')))[index_ss + 1]] for index_shift_s0 in range(len(my_AA_directories_across_shifts))]
+    heterozygosity_mean_wrt_shift_s0 = [np.mean(heterozygosity_each_generation) for heterozygosity_each_generation in heterozygosity_each_generation_wrt_shift_s0]
+    heterozygosity_se_wrt_shift_s0 = [np.divide(np.std(heterozygosity_each_generation), np.sqrt(np.size(heterozygosity_each_generation))) for heterozygosity_each_generation in heterozygosity_each_generation_wrt_shift_s0]
+    return heterozygosity_mean_wrt_shift_s0, heterozygosity_se_wrt_shift_s0
+
+def calculate_contribution_to_change_mean_and_se_across_effect_sizes(my_AA_directories, indices_ss, E2Ns, nE):
+    V2Ns = E2Ns ** 2
+    S_dist = gamma(float(E2Ns) ** 2 / float(V2Ns), loc=0.,
+                                               scale=float(V2Ns) / float(E2Ns))
+    a_list_pos = [math.sqrt(S_dist.ppf((i + 1) / (nE + 1))) for i in range(nE)]
+    contribution_to_change_each_shift = dict()
+    for index_ss in indices_ss:
+        contribution_to_change_each_shift[index_ss] = list()
+    for my_AA_directory in my_AA_directories:
+        with open(os.path.join(my_AA_directory, 'fixations_and_extinctions'), 'rb') as f:
+            d2ax_t_1_scaled = pickle.load(f)[-1]
+        for d2ax_t_1_scaled_each_shift in d2ax_t_1_scaled:
+            for index_ss in indices_ss:
+                contribution_to_change_each_shift[index_ss].append(0.0)
+            for mut in [mut for mut in d2ax_t_1_scaled_each_shift if np.searchsorted(a_list_pos, abs(mut[0])) - 1 in indices_ss]:
+                contribution_to_change_each_shift[np.searchsorted(a_list_pos, abs(mut[0])) - 1][-1] += mut[1]
+    contribution_to_change_mean = [np.mean(contribution_to_change_each_shift[index_ss]) for index_ss in indices_ss]
+    contribution_to_change_se = [np.divide(np.std(contribution_to_change_each_shift[index_ss]), np.sqrt(np.size(contribution_to_change_each_shift[index_ss]))) for index_ss in indices_ss]
+    return contribution_to_change_mean, contribution_to_change_se
+
+def calculate_contribution_to_change_mean_and_se_across_shifts(my_AA_directories_across_shifts, index_ss, E2Ns, nE):
+    V2Ns = E2Ns ** 2
+    S_dist = gamma(float(E2Ns) ** 2 / float(V2Ns), loc=0.,
+                                               scale=float(V2Ns) / float(E2Ns))
+    a_list_pos = [math.sqrt(S_dist.ppf((i + 1) / (nE + 1))) for i in range(nE)]
+    contribution_to_change_mean_wrt_shift_s0 = list()
+    contribution_to_change_se_wrt_shift_s0 = list()
+    for index_shift_s0 in range(len(my_AA_directories_across_shifts)):
+        contribution_to_change_each_shift = list()
+        for my_AA_directory in my_AA_directories_across_shifts[index_shift_s0]:
+            with open(os.path.join(my_AA_directory, 'fixations_and_extinctions'), 'rb') as f:
+                d2ax_t_1_scaled = pickle.load(f)[-1]
+            for d2ax_t_1_scaled_each_shift in d2ax_t_1_scaled:
+                contribution_to_change_each_shift.append(0.0)
+                for mut in [mut for mut in d2ax_t_1_scaled_each_shift if np.searchsorted(a_list_pos, abs(mut[0])) - 1 == index_ss]:
+                    contribution_to_change_each_shift[-1] += mut[1]
+        contribution_to_change_mean = np.mean(contribution_to_change_each_shift)
+        contribution_to_change_se = np.divide(np.std(contribution_to_change_each_shift), np.sqrt(np.size(contribution_to_change_each_shift)))
+        contribution_to_change_mean_wrt_shift_s0 += [contribution_to_change_mean]
+        contribution_to_change_se_wrt_shift_s0 += [contribution_to_change_se]
+    return contribution_to_change_mean_wrt_shift_s0, contribution_to_change_se_wrt_shift_s0
 
 def read_pickle(file):
     with open(file, 'rb') as f:
