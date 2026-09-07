@@ -2,11 +2,11 @@
 
 ## Files
 
-quantities_of_interest.ipynb contains code that plots the quantities relevant to the central questions we are interested in answering/understanding
+quantities_of_interest.py contains code that plots the quantities relevant to the central questions we are interested in answering/understanding
 
-phenotypic_dynamics.ipynb contains code that plots the phenotypic dynamics, which illustrates similarities and differences between our scenario of recurrent shifts and scenarios of a single shift or no shifts
+phenotypic_dynamics.py contains code that plots the phenotypic dynamics, which illustrates similarities and differences between our scenario of recurrent shifts and scenarios of a single shift or no shifts
 
-auxiliary_quantities.ipynb contains code that plots quantities which help us understand why some quantities of interest have inaccurate analytics or behave not as we expected under some cases and parameter regimes
+auxiliary_quantities.py contains code that plots quantities which help us understand why some quantities of interest have inaccurate analytics or behave not as we expected under some cases and parameter regimes
 
 plot_functions.py contains purely analytical functions of the quantities to plot and functions that read and preprocess simulation results
 

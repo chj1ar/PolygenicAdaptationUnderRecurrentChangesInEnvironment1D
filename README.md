@@ -6,13 +6,19 @@
 
 The purpose of the code is to simulate a constant size diploid population that is at steady-state under stabilizing selection and recurrent shifts in fitness optimum. For further details about the scenario and the theory behind the simulations please see ???
 
-The code folder contains two programs all of which run using Python 3.7. One program simulates populations evolving. This program has two options, with and without effect size bins. The other program records the state of a simulation from time to time, in case the simulation crashes, and resumes the simulation from the recorded state if so. So far this program has only been implemented with effect size bins.
+The current folder contains code simulating the populations evolving, code running the simulations, and code processing the simulation results. The simulation code records the state of a simulation from time to time, in case the simulation crashes, and resumes the simulation from the recorded state if so.
 
 These programs can be run using command line.
 
 ## Simulations
 
-Use populations\_argparse\_recurrent\_shifts\_record.py and populations\_argparse\_recurrent\_shifts\_no\_efs\_bins.py to simulate a population with and without effect size bins, respectively. The programs can be run on the command line and takes the following parameters:
+populations\_functions\_record\_and\_resume.py contains the classes to simulate the population.
+
+mutation\_functions.py has container classes for mutations arising in the population.
+
+## To run simulations
+
+Use populations\_argparse\_recurrent\_shifts\_record.py and populations\_argparse\_recurrent\_shifts\_no\_efs\_bins.py to run simulations with and without effect size bins, respectively. The programs can be run on the command line (see population_recurrent_shifts.sh as an example) and take the following parameters:
 
 -N population size
 
@@ -48,16 +54,38 @@ Use populations\_argparse\_recurrent\_shifts\_record.py and populations\_argpars
 
 The file 'identifiers.txt' inside the save_directory records the choices of simulation parameters.
 
-The file 'fixation_probability' (with effect size bins) and 'fixations_and_extinctions' (without effect size bins) inside the save_directory records statistics in order to calculate the fixation probabilities of newly arising mutations, the expected heterozygosity of the population at a given point in time, and the relative allelic contribution to the short-term phenotypic change after a shift per unit mutational input, and the proportion of fixations due to adaptation, \alpha, in the McDonald-Kreitman test.
+The file 'fixation_probability' (with effect size bins) and 'fixations_and_extinctions' (without effect size bins) inside the save_directory records statistics in order to calculate the fixation probabilities of newly arising mutations, the expected heterozygosity of the population at a given point in time, and the relative allelic contribution to the short-term phenotypic change after a shift per unit mutational input, and the proportion of fixations due to adaptation, $\alpha$, in the McDonald-Kreitman test.
 
-## Recording and resuming simulations
+## To process simulation results
 
-As mentioned, so far only with effect size bins. During a simulation, we record from time to time its state, specifically the statistics that are needed to resume the simulation if it crashes. If the simulation crashes, then we resume it with populations_argparse_recurrent_shifts_resume.py, which first loads the recorded state and then runs the simulation from the recorded state. The program populations_argparse_recurrent_shifts_resume.py can be run on the command line and takes the following parameters:
+plotting/plot_functions.py contains functions that calculate all the relevant quantities from simulation results. For quantities whose calculations take long, we have the following scripts that run the functions and save the results (of the quantities). The specific quantities and parameters are elaborated in the scripts.
+
+analytic_fixation_probability_shift_size_gamma.py
+
+analytic_heterozygosity.py
+
+analytic_heterozygosity_truncating_rare_alleles.py
+
+contribution_to_change.py
+
+contribution_to_change_across_rates_of_shifts.py
+
+contribution_to_change_across_shift_sizes.py
+
+average_E_Delta_x.py
+
+average_E_Delta_x_across_rates_of_shifts.py
+
+average_E_Delta_x_across_shift_sizes.py
+
+number_of_shifts_a_fixed_mutation_experiences.py
+
+excess_number_of_aligned_than_opposing_shifts_a_fixed_mutation_experiences.py
+
+analytic_V_A.py
+
+## To resume a simulation
+
+If a simulation crashes, then we can resume it with populations_argparse_recurrent_shifts_resume.py, which first loads the recorded state and then runs the simulation from the recorded state. The program can be run on the command line and takes the following parameters:
 
 -iF, --intermediate_Folder The directory in which the recorded state is saved. This directory will also save your simulation results.
-
-## Code files
-
-populations\_functions\_record\_and\_resume.py contains the classes to simulate the population.
-
-mutation\_functions.py has container classes for mutations arising in the population.

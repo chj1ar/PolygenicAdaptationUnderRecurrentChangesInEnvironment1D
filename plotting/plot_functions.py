@@ -28,6 +28,7 @@ import random
 
 # AA simulation replicates
 parallel_AA = 49
+save_directory = '/insomnia001/depts/pas_lab/users/jc5473'
 
 # define functions for analytical approximations
 N = 2000
@@ -532,6 +533,84 @@ def calculate_contribution_to_change_mean_and_se_across_shifts(my_AA_directories
         contribution_to_change_mean_wrt_shift_s0 += [contribution_to_change_mean]
         contribution_to_change_se_wrt_shift_s0 += [contribution_to_change_se]
     return contribution_to_change_mean_wrt_shift_s0, contribution_to_change_se_wrt_shift_s0
+
+
+
+def calculate_average_E_Delta_x_across_effect_sizes(N, U, E2Ns, index_shift_s0, shift_s0, index_rate_of_shift, rate_of_shift, ss_min, ss_max):
+    with open(os.path.join(save_directory, 'analytic_V_A_N_%d_U_' % N + str(U).replace('.', '_') + '_index_shift_s0_%d_index_rate_of_shift_%d_E2Ns_%d' % (index_shift_s0, index_rate_of_shift, round(E2Ns))), 'rb') as f:
+        analytic_V_A = pickle.load(f)
+    return [quad(lambda x_0: (E_Delta_x_stab_sel(a=np.sqrt(ss), x=x_0) + 0.5 * rate_of_shift * jump_nonlinear(a=np.sqrt(ss), x=x_0, shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A)) + 0.5 * rate_of_shift * jump_nonlinear(a=np.sqrt(ss), x=x_0, shift_s0=-shift_s0, sigma_0_del=np.sqrt(analytic_V_A))) * tau_shifts(a=np.sqrt(ss), x=x_0, p_initial=1 / (2 * N), shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A), p=rate_of_shift), 0.0, 1.0, points=[1/(2*N)])[0] / quad(lambda x_0: tau_shifts(a=np.sqrt(ss), x=x_0, p_initial=1 / (2 * N), shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A), p=rate_of_shift), 0.0, 1.0, points=[1/(2*N)])[0] for ss in np.geomspace(ss_min, ss_max)]
+
+def calculate_average_E_Delta_x_across_shift_sizes(N, U, E2Ns, shift_s0_min, shift_s0_max, shift_s0_partitioning, index_rate_of_shift, rate_of_shift, ss):
+    analytic_V_A = list()
+    for index_shift_s0 in range(shift_s0_partitioning):
+        with open(os.path.join(save_directory, 'analytic_V_A_N_%d_U_' % N + str(U).replace('.', '_') + '_index_shift_s0_%d_index_rate_of_shift_%d_E2Ns_%d' % (index_shift_s0, index_rate_of_shift, round(E2Ns))), 'rb') as f:
+            analytic_V_A.append(pickle.load(f))
+    return [quad(lambda x_0: (E_Delta_x_stab_sel(a=np.sqrt(ss), x=x_0) + 0.5 * rate_of_shift * jump_nonlinear(a=np.sqrt(ss), x=x_0, shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_shift_s0])) + 0.5 * rate_of_shift * jump_nonlinear(a=np.sqrt(ss), x=x_0, shift_s0=-shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_shift_s0]))) * tau_shifts(a=np.sqrt(ss), x=x_0, p_initial=1 / (2 * N), shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_shift_s0]), p=rate_of_shift), 0.0, 1.0, points=[1/(2*N)])[0] / quad(lambda x_0: tau_shifts(a=np.sqrt(ss), x=x_0, p_initial=1 / (2 * N), shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_shift_s0]), p=rate_of_shift), 0.0, 1.0, points=[1/(2*N)])[0] for index_shift_s0, shift_s0 in enumerate(np.geomspace(shift_s0_min, shift_s0_max, shift_s0_partitioning))]
+
+def calculate_average_E_Delta_x_across_rates_of_shifts(N, U, E2Ns, index_shift_s0, shift_s0, rate_of_shifts_min, rate_of_shifts_max, rate_of_shifts_partitioning, ss):
+    analytic_V_A = list()
+    for index_rate_of_shift in range(rate_of_shifts_partitioning):
+        with open(os.path.join(save_directory, 'analytic_V_A_N_%d_U_' % N + str(U).replace('.', '_') + '_index_shift_s0_%d_index_rate_of_shift_%d_E2Ns_%d' % (index_shift_s0, index_rate_of_shift, round(E2Ns))), 'rb') as f:
+            analytic_V_A.append(pickle.load(f))
+    return [quad(lambda x_0: (E_Delta_x_stab_sel(a=np.sqrt(ss), x=x_0) + 0.5 * rate_of_shift * jump_nonlinear(a=np.sqrt(ss), x=x_0, shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_rate_of_shift])) + 0.5 * rate_of_shift * jump_nonlinear(a=np.sqrt(ss), x=x_0, shift_s0=-shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_rate_of_shift]))) * tau_shifts(a=np.sqrt(ss), x=x_0, p_initial=1 / (2 * N), shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_rate_of_shift]), p=rate_of_shift), 0.0, 1.0, points=[1/(2*N)])[0] / quad(lambda x_0: tau_shifts(a=np.sqrt(ss), x=x_0, p_initial=1 / (2 * N), shift_s0=shift_s0, sigma_0_del=np.sqrt(analytic_V_A[index_rate_of_shift]), p=rate_of_shift), 0.0, 1.0, points=[1/(2*N)])[0] for index_rate_of_shift, rate_of_shift in enumerate(np.geomspace(rate_of_shifts_min, rate_of_shifts_max, rate_of_shifts_partitioning))]
+
+def calculate_number_of_shifts_a_fixed_mutation_experiences_and_naive_samples(N, U, E2Ns, index_shift_s0, shift_s0, index_rate_of_shift, rate_of_shift, index_ss, ss, nE):
+    V2Ns = E2Ns ** 2
+    S_dist = gamma(float(E2Ns) ** 2 / float(V2Ns), loc=0.,
+                                               scale=float(V2Ns) / float(E2Ns))
+    a_list_pos = [math.sqrt(S_dist.ppf((i + 1) / (nE + 1))) for i in range(nE)]
+    if E2Ns == 1:
+        with open(os.path.join(save_directory, 'empirical_average_V_A_Lande'), 'rb') as f:
+            empirical_average_V_A = pickle.load(f)
+    elif E2Ns == 16:
+        with open(os.path.join(save_directory, 'empirical_average_V_A_nonLande'), 'rb') as f:
+            empirical_average_V_A = pickle.load(f)
+    else:
+        raise ValueError('invalid E2Ns value')
+    numbers_of_shifts_experienced = list()
+    naive_samples = list()
+    for i in range(1, 1 + parallel_AA):
+        with open(os.path.join(save_directory, 'my_AA_N_%d_U_' % N + str(U).replace('.', '_') + '_shift_s0_' + str(shift_s0).replace('.', '_') + '_rate_of_shift_' + str(rate_of_shift).replace('.', '_') + '_E2Ns_%d_no_efs_bins_time_arising_fixing_empirical_average_V_A_%d/fixations_and_extinctions' % (round(E2Ns), i)), 'rb') as f:
+            fixations_and_extinctions, _, dist_ess_over_time, _, _, _, fixation_timings = pickle.load(f)
+        shift_times = [tM for tM in range(len(dist_ess_over_time)) if abs(dist_ess_over_time[tM] - dist_ess_over_time[tM - 1]) >= 0.5 * shift_s0 * np.sqrt(empirical_average_V_A[index_shift_s0][index_rate_of_shift])]
+        for fixation_timing, a in zip(fixation_timings, [mut[0] for mut in fixations_and_extinctions if mut[1]]):
+            if np.searchsorted(a_list_pos, np.abs(a)) == index_ss + 1:
+                numbers_of_shifts_experienced.append(np.searchsorted(shift_times, fixation_timing[1]) - np.searchsorted(shift_times, fixation_timing[0]))
+                naive_samples.append(rate_of_shift * (fixation_timing[1] - fixation_timing[0]))
+    return numbers_of_shifts_experienced, naive_samples
+
+def calculate_excess_number_of_aligned_than_opposing_shifts_a_fixed_mutation_experiences(N, U, E2Ns, index_shift_s0, shift_s0, index_rate_of_shift, rate_of_shift, index_ss, ss, nE):
+    V2Ns = E2Ns ** 2
+    S_dist = gamma(float(E2Ns) ** 2 / float(V2Ns), loc=0.,
+                                               scale=float(V2Ns) / float(E2Ns))
+    a_list_pos = [math.sqrt(S_dist.ppf((i + 1) / (nE + 1))) for i in range(nE)]
+    if E2Ns == 1:
+        with open(os.path.join(save_directory, 'empirical_average_V_A_Lande'), 'rb') as f:
+            empirical_average_V_A = pickle.load(f)
+    elif E2Ns == 16:
+        with open(os.path.join(save_directory, 'empirical_average_V_A_nonLande'), 'rb') as f:
+            empirical_average_V_A = pickle.load(f)
+    else:
+        raise ValueError('invalid E2Ns value')
+    numbers_of_aligned_shifts_experienced = list()
+    numbers_of_opposing_shifts_experienced = list()
+    for i in range(1, 1 + parallel_AA):
+        with open(os.path.join(save_directory, 'my_AA_N_%d_U_' % N + str(U).replace('.', '_') + '_shift_s0_' + str(shift_s0).replace('.', '_') + '_rate_of_shift_' + str(rate_of_shift).replace('.', '_') + '_E2Ns_%d_no_efs_bins_time_arising_fixing_empirical_average_V_A_%d/fixations_and_extinctions' % (round(E2Ns), i)), 'rb') as f:
+            fixations_and_extinctions, _, dist_ess_over_time, _, _, _, fixation_timings = pickle.load(f)
+        trait_increasing_shift_times = [tM for tM in range(len(dist_ess_over_time)) if dist_ess_over_time[tM] - dist_ess_over_time[tM - 1] >= 0.5 * shift_s0 * np.sqrt(empirical_average_V_A[index_shift_s0][index_rate_of_shift])]
+        trait_decreasing_shift_times = [tM for tM in range(len(dist_ess_over_time)) if dist_ess_over_time[tM] - dist_ess_over_time[tM - 1] <= -0.5 * shift_s0 * np.sqrt(empirical_average_V_A[index_shift_s0][index_rate_of_shift])]
+        for fixation_timing, a in zip(fixation_timings, [mut[0] for mut in fixations_and_extinctions if mut[1]]):
+            if np.searchsorted(a_list_pos, np.abs(a)) == index_ss + 1:
+                number_of_trait_increasing_shifts_experienced = np.searchsorted(trait_increasing_shift_times, fixation_timing[1]) - np.searchsorted(trait_increasing_shift_times, fixation_timing[0])
+                number_of_trait_decreasing_shifts_experienced = np.searchsorted(trait_decreasing_shift_times, fixation_timing[1]) - np.searchsorted(trait_decreasing_shift_times, fixation_timing[0])
+                if a > 0:
+                    numbers_of_aligned_shifts_experienced.append(number_of_trait_increasing_shifts_experienced)
+                    numbers_of_opposing_shifts_experienced.append(number_of_trait_decreasing_shifts_experienced)
+                else:
+                    numbers_of_aligned_shifts_experienced.append(number_of_trait_decreasing_shifts_experienced)
+                    numbers_of_opposing_shifts_experienced.append(number_of_trait_increasing_shifts_experienced)
+    return numbers_of_aligned_shifts_experienced, numbers_of_opposing_shifts_experienced
 
 def read_pickle(file):
     with open(file, 'rb') as f:
